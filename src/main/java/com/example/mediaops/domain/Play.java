@@ -15,7 +15,7 @@ public class Play {
     @JoinColumn(name = "video_id", nullable = false)
     private Video video;
 
-    @Column(name = "played_at", insertable = false, updatable = false)
+    @Column(name = "played_at", nullable = false)
     private Instant playedAt;
 
     @Column(name = "user_agent", columnDefinition = "text")
@@ -26,6 +26,7 @@ public class Play {
     public Play(Video video, String userAgent) {
         this.video = video;
         this.userAgent = userAgent;
+        this.playedAt = Instant.now();
     }
 
     public Integer getId() { return id; }

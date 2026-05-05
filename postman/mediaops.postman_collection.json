@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "MediaOps API",
+    "description": "Spring Boot demo for the Apple Full-Stack interview prep.\n\nBase URL is parameterized via the `baseUrl` collection variable (defaults to `http://localhost:8081`). Switch environments by overriding it.\n\nFolders:\n- **Health** — actuator probes\n- **Videos** — read endpoints over the existing `videos` table\n- **Plays** — record-a-play write endpoint with validation\n\nEvery request includes at least one example response so you can preview the contract without firing it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "mediaops-demo-collection-2026"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /actuator/health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Liveness/readiness probe. Spring Boot Actuator combines DataSource health + disk space + ping. UP means the JVM is alive AND the DB connection is reachable."
+          },
+          "response": [
+            {
+              "name": "200 UP",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/actuator/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["actuator", "health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"UP\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Videos",
+      "item": [
+        {
+          "name": "GET /api/v2/videos (list all)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/videos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "videos"]
+            },
+            "description": "Returns every row in the `videos` table as VideoDto JSON. No pagination yet — would add `?page=&size=` for production."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "[\n  {\n    \"id\": 1,\n    \"title\": \"Big Buck Bunny\",\n    \"category\": \"Animation\",\n    \"viewCount\": 1243\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "GET /api/v2/videos?category=Animation (filter)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/videos?category=Animation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "videos"],
+              "query": [{ "key": "category", "value": "Animation" }]
+            },
+            "description": "Spring Data derives the SQL from the repository method name `findByCategoryOrderByCreatedAtDesc(String)` — no hand-written query needed."
+          }
+        },
+        {
+          "name": "GET /api/v2/videos/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/videos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "videos", "1"]
+            },
+            "description": "Single video by primary key. Returns 404 with structured error body if not found."
+          }
+        },
+        {
+          "name": "GET /api/v2/videos/{id} → 404 not found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/videos/9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "videos", "9999"]
+            },
+            "description": "Demonstrates the @RestControllerAdvice mapping NoSuchElementException → HTTP 404 with `{error, message}` JSON body."
+          },
+          "response": [
+            {
+              "name": "404 not_found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"not_found\",\n  \"message\": \"Video 9999 not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Plays",
+      "item": [
+        {
+          "name": "POST /api/v2/plays (record a play)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/plays",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "plays"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"videoId\": 1,\n  \"userAgent\": \"postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Records a play and atomically increments `videos.view_count` inside the same transaction. The view-count update happens via Hibernate dirty checking — no explicit UPDATE statement in the service code."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"id\": 11,\n  \"videoId\": 1,\n  \"playedAt\": \"2026-05-05T00:22:49.196478Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /api/v2/plays → 400 validation_failed",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/plays",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v2", "plays"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userAgent\": \"missing-videoId\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Bean Validation (@NotNull on videoId) trips before the controller runs. The advice maps MethodArgumentNotValidException → 400 with a per-field error array."
+          },
+          "response": [
+            {
+              "name": "400 validation_failed",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"error\": \"validation_failed\",\n  \"fields\": [\n    { \"field\": \"videoId\", \"message\": \"must not be null\" }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
